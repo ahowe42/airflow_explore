@@ -47,10 +47,10 @@ with DAG('user_processing', schedule_interval='@daily', default_args=args,
         username TEXT NOT NULL,
         password TEXT NOT NULL);''')
 
-    # check api task
+    # check api task - https://randomuser.me/
     check_api = HttpSensor(task_id='check_api', http_conn_id='user_api', endpoint='api/')
 
-    # fetch user task
+    # fetch user task - https://randomuser.me/
     fetch_user = SimpleHttpOperator(task_id='fetch_user', http_conn_id='user_api',
         endpoint='api/', method='GET', response_filter=lambda resp: json.loads(resp.text),
         log_response=True)
@@ -59,8 +59,7 @@ with DAG('user_processing', schedule_interval='@daily', default_args=args,
     process_user = PythonOperator(task_id='process_user', python_callable=_processUser)
 
     # store user task
-    store_user = BashOperator(task_id='store_user',
-        bash_command=insrt)
+    store_user = BashOperator(task_id='store_user', bash_command=insrt)
 
     # define dependencies
     create_table >> check_api >> fetch_user >> process_user >> store_user
