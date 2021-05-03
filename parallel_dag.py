@@ -10,14 +10,13 @@ with DAG('parallel_dag', schedule_interval='@daily', default_args=args,
     catchup=False) as dag:
     ''' define tasks/operators in the pipeline: one operator per task '''
     # 1st task
-    task1 = BashOperator(task_id='store_user', bash_command='sleep 3')
+    task1 = BashOperator(task_id='t1', bash_command='sleep 3')
     # 2nd task
-    task2 = BashOperator(task_id='store_user', bash_command='sleep 3')
+    task2 = BashOperator(task_id='t2', bash_command='sleep 3')
     # 3rd task
-    task3 = BashOperator(task_id='store_user', bash_command='sleep 3')
+    task3 = BashOperator(task_id='t3', bash_command='sleep 3')
     # 4th task
-    task4 = BashOperator(task_id='store_user', bash_command='sleep 3')
+    task4 = BashOperator(task_id='t4', bash_command='sleep 3')
 
     # define dependencies
-    task1 >> task2 >> task4
-    task1 >> task3 >> task4
+    task1 >> [task2, task3] >> task4
