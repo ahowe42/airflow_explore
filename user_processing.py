@@ -35,7 +35,7 @@ args = {'start_date':dt.datetime(2021,4,20)}
 
 # define dag(unique_id, ...) NB catchup only works as expected if the dag has not been run
 with DAG('user_processing', schedule_interval='@daily', default_args=args,
-    catchup=True) as dag:
+    catchup=True, concurrency=1) as dag:
     ''' define tasks/operators in the pipeline: one operator per task '''
     # create table task - this seems to not work if run first with catchup in local executor mode
     create_table = SqliteOperator(task_id='create_table', sqlite_conn_id='db_sqlite',
