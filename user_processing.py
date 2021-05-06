@@ -35,9 +35,9 @@ args = {'start_date':dt.datetime(2021,4,20)}
 
 # define dag(unique_id, ...) NB catchup only works as expected if the dag has not been run
 with DAG('user_processing', schedule_interval='@daily', default_args=args,
-    catchup=True) as dag:
+    catchup=True, concurrency=1, max_active_runs=1) as dag:
     ''' define tasks/operators in the pipeline: one operator per task '''
-    # create table task
+    # create table task - this seems to not work if run first with catchup in local executor mode
     create_table = SqliteOperator(task_id='create_table', sqlite_conn_id='db_sqlite',
         sql='''create table if not exists users(
         email TEXT PRIMARY KEY,
@@ -47,10 +47,10 @@ with DAG('user_processing', schedule_interval='@daily', default_args=args,
         username TEXT NOT NULL,
         password TEXT NOT NULL);''')
 
-    # check api task
+    # check api task - https://randomuser.me/
     check_api = HttpSensor(task_id='check_api', http_conn_id='user_api', endpoint='api/')
 
-    # fetch user task
+    # fetch user task - https://randomuser.me/
     fetch_user = SimpleHttpOperator(task_id='fetch_user', http_conn_id='user_api',
         endpoint='api/', method='GET', response_filter=lambda resp: json.loads(resp.text),
         log_response=True)
@@ -59,8 +59,7 @@ with DAG('user_processing', schedule_interval='@daily', default_args=args,
     process_user = PythonOperator(task_id='process_user', python_callable=_processUser)
 
     # store user task
-    store_user = BashOperator(task_id='store_user',
-        bash_command=insrt)
+    store_user = BashOperator(task_id='store_user', bash_command=insrt)
 
     # define dependencies
     create_table >> check_api >> fetch_user >> process_user >> store_user
