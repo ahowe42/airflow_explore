@@ -6,7 +6,7 @@ from airflow.utils.task_group import TaskGroup
 from random import uniform
 from datetime import datetime
 
-default_args = {'start_date': datetime(2021, 5, 1)}
+default_args = {'start_date': datetime(2021, 4, 1)}
 
 def _train_model(ti):
     accuracy = uniform(0.0, 1.0)
@@ -23,6 +23,7 @@ def _choose_best_model(ti):
         res = 'accurate'
     else:
         res = 'inaccurate'
+    ti.xcom_push(key='decision', value=res)
     return res
 
 def _isAccurate(ti):
@@ -33,7 +34,7 @@ def _isinAccurate(ti):
     acc = ti.xcom_pull(task_ids='choose_model', key='accuracy')
     print('Oh no, best model accuracy = %0.3f :-('%acc)
 
-with DAG('xcom_dag', schedule_interval='@daily', default_args=default_args, catchup=False) as dag:
+with DAG('xcom_dag', schedule_interval='@daily', default_args=default_args, catchup=True) as dag:
     # download task
     download_data = BashOperator(task_id='download_data', bash_command='sleep 3',
         do_xcom_push=False)
