@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.operators.dummy import DummyOperator
 
 from random import uniform
 from datetime import datetime
@@ -54,5 +55,8 @@ with DAG('xcom_dag', schedule_interval='@daily', default_args=default_args, catc
     accurate = PythonOperator(task_id='accurate', python_callable=_isAccurate)
     inaccurate = PythonOperator(task_id='inaccurate', python_callable=_isinAccurate)
 
+    # done
+    store = DummyOperator(task_id='store', trigger_rule='one_success') # none_failed_or_skipped
+
     # tak dependencies
-    download_data >> process_tasks >> choose_model >> [accurate, inaccurate]
+    download_data >> process_tasks >> choose_model >> [accurate, inaccurate] >> store
