@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.utils.task_group import TaskGroup
 
 from random import uniform
@@ -17,7 +17,21 @@ def _choose_best_model(ti):
     accs = ti.xcom_pull(key='model_accuracy', task_ids=['process_tasks.train_model_a',
         'process_tasks.train_model_b', 'process_tasks.train_model_c'])
     print(accs)
-    ti.xcom_push(key='accuracies', value=accs)
+    acc = max(accs)
+    ti.xcom_push(key='accuracy', value=acc)
+    if acc > 0.8:
+        res = 'accurate'
+    else:
+        res = 'inaccurate'
+    return res
+
+def _isAccurate(ti):
+    acc = ti.xcom_pull(task_ids='choose_model', key='accuracy')
+    print('Whoo hoo best model accuracy = %0.3f :-)'%acc)
+
+def _isinAccurate(ti):
+    acc = ti.xcom_pull(task_ids='choose_model', key='accuracy')
+    print('Oh no, best model accuracy = %0.3f :-('%acc)
 
 with DAG('xcom_dag', schedule_interval='@daily', default_args=default_args, catchup=False) as dag:
     # download task
@@ -33,7 +47,11 @@ with DAG('xcom_dag', schedule_interval='@daily', default_args=default_args, catc
         train_model_c = PythonOperator(task_id='train_model_c', python_callable=_train_model)
 
     # choose a model
-    choose_model = PythonOperator(task_id='choose_model', python_callable=_choose_best_model)
+    choose_model = BranchPythonOperator(task_id='choose_model', python_callable=_choose_best_model)
+
+    # accurate or not
+    accurate = PythonOperator(task_id='accurate', python_callable=_isAccurate)
+    inaccurate = PythonOperator(task_id='inaccurate', python_callable=_isinAccurate)
 
     # tak dependencies
-    download_data >> process_tasks >> choose_model
+    download_data >> process_tasks >> choose_model >> [accurate, inaccurate]
